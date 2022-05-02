@@ -23,6 +23,21 @@ def dp_synthetic_data_2d(data, a, b, epsilon, k, m):
     vals = [[np.random.uniform(a + ix * step, a + (ix + 1) * step), np.random.uniform(a + iy * step, a + (iy + 1) * step)] for (ix, iy) in inds]
     return vals
 
+def dp_histogram_2d_exper(data, a, b, epsilon, k):
+    bin_lims = np.arange(a, b + (b - a) / k, (b - a) / k)
+    sens_hist = data
+    p = 1 - np.exp(-epsilon / (2 * (k ** 2)))
+    noise = np.random.geometric(p, size=sens_hist.shape) - np.random.geometric(p, size=sens_hist.shape)
+    return (np.clip(sens_hist + noise, 0, len(data)), bin_lims)
+
+def dp_synthetic_data_2d_exper(data, a, b, epsilon, k, m):
+    dp_hist, bin_lims = dp_histogram_2d_exper(data, a, b, epsilon, k)
+    dp_hist /= np.sum(dp_hist)
+    inds = [choose_ind_2d(dp_hist) for i in range(m)]
+    step = (b - a) / k
+    vals = [[np.random.uniform(a + ix * step, a + (ix + 1) * step), np.random.uniform(a + iy * step, a + (iy + 1) * step)] for (ix, iy) in inds]
+    return vals
+
 def dp_histogram(data, a, b, epsilon, k):
     bin_lims = np.arange(a, b + (b - a) / k, (b - a) / k)
     data = np.clip(data, a, b)
@@ -124,3 +139,13 @@ def mean_loc_gaussian_exper(data, epsilon, delta, a, b, true_mean):
     true_lat_mean = true_mean[0]
     true_long_mean = true_mean[1]
     return (np.clip(true_lat_mean + np.random.laplace(param), a, b), np.clip(true_long_mean + np.random.laplace(param), a, b))
+
+def mean_loc_synthetic(data, epsilon, a, b, k, m):
+    new_data = list(map(coords_to_list, data["location"]))
+    synthetic = dp_synthetic_data_2d(new_data, a, b, epsilon, k, m)
+    return synthetic
+
+def mean_loc_synthetic_exper(data, epsilon, a, b, k, m, new_data):
+    synthetic = dp_synthetic_data_2d_exper(new_data, a, b, epsilon, k, m)
+    synthetic = list(map(list, zip(*synthetic)))
+    return (np.mean(synthetic[0]), np.mean(synthetic[1]))
